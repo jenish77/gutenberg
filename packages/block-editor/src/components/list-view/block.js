@@ -142,6 +142,30 @@ function ListViewBlock( {
 			[ clientId ]
 		);
 
+	const { isWithinEditedSection, editedContentOnlySection } = useSelect(
+		( select ) => {
+			const {
+				getEditedContentOnlySection,
+				isWithinEditedContentOnlySection,
+			} = unlock( select( blockEditorStore ) );
+
+			const editedSection = getEditedContentOnlySection();
+
+			return {
+				isWithinEditedSection: editedSection
+					? isWithinEditedContentOnlySection( clientId )
+					: false,
+				editedContentOnlySection: editedSection,
+			};
+		},
+		[ clientId ]
+	);
+
+	const shouldFadeInSpotlight =
+		!! window?.__experimentalContentOnlyPatternInsertion &&
+		!! editedContentOnlySection &&
+		! isWithinEditedSection;
+
 	const showBlockActions =
 		// When a block hides its toolbar it also hides the block settings menu,
 		// since that menu is part of the toolbar in the editor canvas.
@@ -562,6 +586,7 @@ function ListViewBlock( {
 		'is-displacement-down': displacement === 'down',
 		'is-after-dragged-blocks': isAfterDraggedBlocks,
 		'is-nesting': isNesting,
+		'is-faded-in-spotlight': shouldFadeInSpotlight,
 	} );
 
 	// Only include all selected blocks if the currently clicked on block
