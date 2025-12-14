@@ -458,6 +458,11 @@
 		@media not ( prefers-reduced-motion ) {
 			transition: opacity 0.1s linear;
 		}
+
+		// Disable hover effects for faded blocks.
+		&:hover {
+			opacity: 0.2;
+		}
 	}
 }
 
