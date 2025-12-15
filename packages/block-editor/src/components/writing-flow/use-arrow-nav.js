@@ -10,7 +10,7 @@ import {
 	placeCaretAtVerticalEdge,
 	isRTL,
 } from '@wordpress/dom';
-import { UP, DOWN, LEFT, RIGHT } from '@wordpress/keycodes';
+import { UP, DOWN, LEFT, RIGHT, ESCAPE } from '@wordpress/keycodes';
 import { useDispatch, useSelect } from '@wordpress/data';
 import { useRefEffect } from '@wordpress/compose';
 
@@ -19,6 +19,7 @@ import { useRefEffect } from '@wordpress/compose';
  */
 import { getBlockClientId, isInSameBlock } from '../../utils/dom';
 import { store as blockEditorStore } from '../../store';
+import { unlock } from '../../lock-unlock';
 
 /**
  * Returns true if the element should consider edge navigation upon a keyboard
@@ -162,8 +163,12 @@ export default function useArrowNav() {
 		getSettings,
 		hasMultiSelection,
 		__unstableIsFullySelected,
-	} = useSelect( blockEditorStore );
-	const { selectBlock } = useDispatch( blockEditorStore );
+		getEditedContentOnlySection,
+		isWithinEditedContentOnlySection,
+	} = unlock( useSelect( blockEditorStore ) );
+	const blockEditorActions = useDispatch( blockEditorStore );
+	const { selectBlock } = blockEditorActions;
+	const { stopEditingContentOnlySection } = unlock( blockEditorActions );
 	return useRefEffect( ( node ) => {
 		// Here a DOMRect is stored while moving the caret vertically so
 		// vertical position of the start position can be restored. This is to
@@ -181,6 +186,38 @@ export default function useArrowNav() {
 				node
 			);
 			return closestTabbable && getBlockClientId( closestTabbable );
+		}
+
+		/**
+		 * Checks if navigation target is within the edited pattern boundary.
+		 * Returns true if we can navigate, false if navigation would exit the pattern.
+		 *
+		 * @param {Element} closestTabbable The target element for navigation.
+		 * @return {boolean} Whether navigation is allowed.
+		 */
+		function canNavigateWithinPatternBoundary( closestTabbable ) {
+			if (
+				! window?.__experimentalContentOnlyPatternInsertion ||
+				! closestTabbable
+			) {
+				return true;
+			}
+
+			const editedContentOnlySection = getEditedContentOnlySection();
+			if ( ! editedContentOnlySection ) {
+				return true;
+			}
+
+			// Get the block client ID of the navigation target.
+			const targetBlockClientId = getBlockClientId( closestTabbable );
+
+			// If we can't determine the target block, allow navigation (fallback).
+			if ( ! targetBlockClientId ) {
+				return true;
+			}
+
+			// Check if the target block is within the edited section.
+			return isWithinEditedContentOnlySection( targetBlockClientId );
 		}
 
 		function onKeyDown( event ) {
@@ -204,6 +241,19 @@ export default function useArrowNav() {
 			const isNavEdge = isVertical ? isVerticalEdge : isHorizontalEdge;
 			const { ownerDocument } = node;
 			const { defaultView } = ownerDocument;
+
+			// Handle Escape key to exit content-only pattern editing mode.
+			if (
+				window?.__experimentalContentOnlyPatternInsertion &&
+				keyCode === ESCAPE
+			) {
+				const editedContentOnlySection = getEditedContentOnlySection();
+				if ( editedContentOnlySection ) {
+					event.preventDefault();
+					stopEditingContentOnlySection();
+					return;
+				}
+			}
 
 			if ( ! isNav ) {
 				return;
@@ -282,6 +332,14 @@ export default function useArrowNav() {
 				);
 
 				if ( closestTabbable ) {
+					// Check if navigation would exit the pattern boundary.
+					if (
+						! canNavigateWithinPatternBoundary( closestTabbable )
+					) {
+						event.preventDefault();
+						return;
+					}
+
 					placeCaretAtVerticalEdge(
 						closestTabbable,
 						// When Alt is pressed, place the caret at the furthest
@@ -302,6 +360,13 @@ export default function useArrowNav() {
 					isReverseDir,
 					node
 				);
+
+				// Check if navigation would exit the pattern boundary.
+				if ( ! canNavigateWithinPatternBoundary( closestTabbable ) ) {
+					event.preventDefault();
+					return;
+				}
+
 				placeCaretAtHorizontalEdge( closestTabbable, isReverse );
 				event.preventDefault();
 			}
