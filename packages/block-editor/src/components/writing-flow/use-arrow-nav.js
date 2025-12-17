@@ -189,11 +189,21 @@ export default function useArrowNav() {
 		}
 
 		/**
-		 * Checks if navigation target is within the edited pattern boundary.
-		 * Returns true if we can navigate, false if navigation would exit the pattern.
+		 * Checks if keyboard navigation target is within the edited pattern boundary
+		 * when in spotlight mode (content-only pattern editing).
 		 *
-		 * @param {Element} closestTabbable The target element for navigation.
-		 * @return {boolean} Whether navigation is allowed.
+		 * During spotlight mode, keyboard navigation (arrow keys) should be constrained
+		 * to blocks within the pattern being edited. This function enforces that
+		 * constraint by checking if the navigation target is within the edited section.
+		 *
+		 * @param {Element} closestTabbable The target DOM element for navigation.
+		 *
+		 * @return {boolean} Returns true if navigation is allowed, false if it would
+		 *                   exit the pattern boundary. Always returns true when:
+		 *                   - Spotlight mode is not active
+		 *                   - Feature flag is disabled
+		 *                   - No target element provided
+		 *                   - Target block cannot be determined (fallback to allow)
 		 */
 		function canNavigateWithinPatternBoundary( closestTabbable ) {
 			if (
