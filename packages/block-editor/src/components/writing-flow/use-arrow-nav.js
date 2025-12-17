@@ -362,7 +362,10 @@ export default function useArrowNav() {
 				);
 
 				// Check if navigation would exit the pattern boundary.
-				if ( ! canNavigateWithinPatternBoundary( closestTabbable ) ) {
+				if (
+					closestTabbable &&
+					! canNavigateWithinPatternBoundary( closestTabbable )
+				) {
 					event.preventDefault();
 					return;
 				}

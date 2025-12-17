@@ -10,6 +10,7 @@ import { useRefEffect } from '@wordpress/compose';
 import { isInsideRootBlock } from '../../../utils/dom';
 import { store as blockEditorStore } from '../../../store';
 import { unlock } from '../../../lock-unlock';
+import { useSpotlightMode } from '../../../hooks/use-spotlight-mode';
 
 /**
  * Selects the block if it receives focus.
@@ -22,24 +23,8 @@ export function useFocusHandler( clientId ) {
 	const { stopEditingContentOnlySection } = unlock(
 		useDispatch( blockEditorStore )
 	);
-	const { editedContentOnlySection, isWithinEditedSection } = useSelect(
-		( select ) => {
-			const {
-				getEditedContentOnlySection,
-				isWithinEditedContentOnlySection,
-			} = unlock( select( blockEditorStore ) );
-
-			const editedSection = getEditedContentOnlySection();
-
-			return {
-				editedContentOnlySection: editedSection,
-				isWithinEditedSection: editedSection
-					? isWithinEditedContentOnlySection( clientId )
-					: false,
-			};
-		},
-		[ clientId ]
-	);
+	const { editedSection, isWithinEditedSection } =
+		useSpotlightMode( clientId );
 
 	return useRefEffect(
 		( node ) => {
@@ -80,7 +65,7 @@ export function useFocusHandler( clientId ) {
 				// exit spotlight mode instead of selecting the block.
 				if (
 					window?.__experimentalContentOnlyPatternInsertion &&
-					editedContentOnlySection &&
+					editedSection &&
 					! isWithinEditedSection
 				) {
 					stopEditingContentOnlySection();
@@ -99,7 +84,7 @@ export function useFocusHandler( clientId ) {
 		[
 			isBlockSelected,
 			selectBlock,
-			editedContentOnlySection,
+			editedSection,
 			isWithinEditedSection,
 			stopEditingContentOnlySection,
 		]
