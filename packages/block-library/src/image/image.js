@@ -472,6 +472,13 @@ export default function Image( {
 		setAttributes( { alt: newAlt } );
 	}
 
+	const imperativeFocalPointPreview = ( value ) => {
+		if ( imageElement ) {
+			// eslint-disable-next-line react-compiler/react-compiler
+			imageElement.style.objectPosition = mediaPosition( value );
+		}
+	};
+
 	function updateImage( newSizeSlug ) {
 		const newUrl = image?.media_details?.sizes?.[ newSizeSlug ]?.source_url;
 		if ( ! newUrl ) {
@@ -843,7 +850,7 @@ export default function Image( {
 						</ToolsPanelItem>
 					) }
 					{ dimensionsControl }
-					{ ( aspectRatio || scale ) && url && (
+					{ aspectRatio && url && (
 						<ToolsPanelItem
 							label={ __( 'Focal point' ) }
 							isShownByDefault
@@ -859,6 +866,8 @@ export default function Image( {
 								label={ __( 'Focal point' ) }
 								url={ url }
 								value={ focalPoint }
+								onDragStart={ imperativeFocalPointPreview }
+								onDrag={ imperativeFocalPointPreview }
 								onChange={ ( newFocalPoint ) =>
 									setAttributes( {
 										focalPoint: newFocalPoint,
