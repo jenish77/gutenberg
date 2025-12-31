@@ -87,13 +87,36 @@ export const format = {
 					getBlockParentsByBlockName: _getBlockParentsByBlockName,
 					getSelectedBlockClientId: _getSelectedBlockClientId,
 				} = select( blockEditorStore );
+				const selectedClientId = _getSelectedBlockClientId();
 				const parentCoreBlocks = _getBlockParentsByBlockName(
-					_getSelectedBlockClientId(),
+					selectedClientId,
 					SYNCED_PATTERN_BLOCK_NAME
 				);
-				return ! parentCoreBlocks || parentCoreBlocks.length === 0;
+				if ( parentCoreBlocks && parentCoreBlocks.length > 0 ) {
+					return false;
+				}
+
+				// Don't allow footnotes inside footnotes blocks
+				const parentFootnotesBlocks = _getBlockParentsByBlockName(
+					selectedClientId,
+					'core/footnotes'
+				);
+				if (
+					parentFootnotesBlocks &&
+					parentFootnotesBlocks.length > 0
+				) {
+					return false;
+				}
+
+				// Also check if the selected block itself is a footnotes block
+				const selectedBlockName = getBlockName( selectedClientId );
+				if ( selectedBlockName === 'core/footnotes' ) {
+					return false;
+				}
+
+				return true;
 			},
-			[ postType, postId ]
+			[ postType, postId, getBlockName ]
 		);
 
 		const { selectionChange, insertBlock } =
