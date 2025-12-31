@@ -93,7 +93,7 @@ export const format = {
 				const selectedClientId = selectionStart?.clientId;
 
 				if ( ! selectedClientId ) {
-					return true;
+					return false;
 				}
 
 				// Check if the selected block itself is a footnotes block.
